@@ -166,6 +166,13 @@ app.put('/v1/task', function(req, res) {
     console.log('Данные для изменения задачи получены');
   }
 
+  let responseMessage = {
+    body: 'Имя задачи изменено',
+    description: 'Описание задачи изменено',
+    user: 'Пользователь задачи изменен',
+    open: 'Статус задачи изменен'
+  };
+
   if (req.body.name && req.body.newName) {
     Task.update(
       {name: req.body.name},
@@ -174,6 +181,7 @@ app.put('/v1/task', function(req, res) {
         if (err) {
           console.log('Ошибка изменения имени задачи', err)
         } else{
+          res.json(responseMessage.body);
           console.log('Имя задачи изменено', result);
         }
       }
@@ -188,6 +196,7 @@ app.put('/v1/task', function(req, res) {
         if (err) {
           console.log('Ошибка изменения описания задачи', err)
         } else{
+          res.json(responseMessage.description);
           console.log('Описание задачи изменено', result);
         }
       }
@@ -202,20 +211,7 @@ app.put('/v1/task', function(req, res) {
         if (err) {
           console.log('Ошибка изменения пользователя задачи', err)
         } else{
-          console.log('Пользователь задачи изменен', result);
-        }
-      }
-    );
-  }
-
-  if (req.body.user && req.body.newUser) {
-    Task.update(
-      {user: req.body.user},
-      {'$set': {user: req.body.newUser}},
-      (err, result) => {
-        if (err) {
-          console.log('Ошибка изменения пользователя задачи', err)
-        } else{
+          res.json(responseMessage.user);
           console.log('Пользователь задачи изменен', result);
         }
       }
@@ -230,13 +226,14 @@ app.put('/v1/task', function(req, res) {
         if (err) {
           console.log('Ошибка изменения статуса пользователя задачи', err)
         } else {
+          res.json(responseMessage.open);
           console.log('Статус задачи изменен', result);
         }
       }
     );
   }
 
-  res.json('Просто ответ');
+
 });
 
 // удаление задачи
@@ -280,6 +277,35 @@ app.post('/v1/tasksearch', function(req, res) {
         console.log('Нет задач с данным условием поиска');
       }
   });
+});
+// Статистика выполненных задач ====================================================
+
+app.get('/v1/stat', function(req, res) {
+  Task.aggregate(
+    [
+      {
+        $match: { "open" : false }
+      },
+       {
+         $project: { _id: 0, user: 1, open: 1, count: {$add: [1]} }
+       },
+       {
+         $group: {_id: "$user", doneTaskCounter: {$sum: "$count"}}
+        },
+      {
+        $sort: {doneTaskCounter: -1}
+      }
+    ], (err, result) => {
+      if (err) {
+        console.log(err);
+      } else if (result.length) {
+        console.log('Исходная коллекция: ', result);
+        res.json(result);
+      } else {
+        res.json('Нет задач с данным условием поиска');
+        console.log('Нет задач с данным условием поиска');
+      }
+    });
 });
 
 
